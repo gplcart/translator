@@ -11,7 +11,7 @@
         var num, input, tr;
         $('input[name^="filter"]').on('keyup', function () {
             input = $(this).val().toLowerCase();
-            num = $(this).attr('name').match(/\[(.*?)\]/)[1];
+            num = $(this).attr('name').match(/\[(.*?)]/)[1];
             $('input[name^="strings"][name$="[' + num + ']"]').each(function () {
                 tr = $(this).closest('tr');
                 if ($(this).val().toLowerCase().indexOf(input) >= 0) {
