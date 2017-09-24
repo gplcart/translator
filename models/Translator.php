@@ -197,7 +197,7 @@ class Translator extends Model
             $this->cache->set($key, $list);
         }
 
-        $this->hook->attach('module.translator.import.list', $langcode, $file, $list);
+        $this->hook->attach('module.translator.import.list', $langcode, $list, $this);
         return $list;
     }
 
