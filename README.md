@@ -1,7 +1,13 @@
 [![Build Status](https://scrutinizer-ci.com/g/gplcart/translator/badges/build.png?b=master)](https://scrutinizer-ci.com/g/gplcart/translator/build-status/master)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/gplcart/translator/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/gplcart/translator/?branch=master)
 
-Translator is a [GPL Cart](https://github.com/gplcart/gplcart) module that allows site administrators to edit, add and delete UI translations.
+Translator is a [GPL Cart](https://github.com/gplcart/gplcart) module that allows site administrators to manage UI translations.
+
+**Features**
+
+- View, delete, download existing translations (including compiled files)
+- Upload new translations
+- Import translations from [Crowdin localization server](https://crowdin.com/project/gplcart)
 
 
 **Installation**

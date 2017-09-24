@@ -9,7 +9,7 @@
 ?>
 <div class="row">
   <div class="col-md-12">
-    <?php echo $this->text('Select a language'); ?>:
+    <?php echo $this->text('Select language'); ?>:
     <ul>
       <?php foreach ($_languages as $code => $language) { ?>
       <li>
