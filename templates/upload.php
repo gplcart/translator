@@ -49,7 +49,7 @@
     </div>
     <div class="form-group">
       <div class="col-md-4 col-md-offset-2">
-        <button class="btn btn-default save" name="save" value="1" onclick="return confirm('<?php echo $this->text('Are you sure? Existing translation for the selected context will be overridden!'); ?>');"><?php echo $this->text('Upload'); ?></button>
+        <button class="btn btn-default save" name="save" value="1" onclick="return confirm('<?php echo $this->text('Are you sure? Existing translation for the selected scope will be overridden!'); ?>');"Are you sure? Existing translation for the selected context will be overridden!><?php echo $this->text('Upload'); ?></button>
       </div>
     </div>
   </form>

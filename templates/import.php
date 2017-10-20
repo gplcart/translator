@@ -47,7 +47,7 @@
       </button>
     </div>
     <?php if (empty($list)) { ?>
-    <?php echo $this->text('Nothing to display. Possible reason: failed to download/parse a source translation file or it has no content. Check system events report'); ?>
+    <?php echo $this->text('Nothing to display. Possible reason: failed to download/parse a source translation file or it has no content. Check system events report for possible errors and notifications'); ?>
     <?php } else { ?>
     <table class="table table-condensed import-translations">
       <thead>
@@ -64,7 +64,7 @@
       </thead>
       <tbody>
         <?php foreach ($list as $module_id => $translations) { ?>
-        <?php if (!empty($translations[$language['code']])) { ?>
+        <?php if(!empty($translations[$language['code']])) { ?>
         <?php $primary = array_shift($translations[$language['code']]); ?>
         <tr>
           <?php if ($access_actions) { ?>
