@@ -472,7 +472,7 @@ class Translator extends Model
      */
     public function getImportFilePath()
     {
-        return GC_PRIVATE_TEMP_DIR . '/translator-import.zip';
+        return gplcart_file_private_temp('translator-import.zip');
     }
 
 }

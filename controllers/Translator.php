@@ -69,7 +69,21 @@ class Translator extends BackendController
     {
         $this->setTitleLanguageTranslator();
         $this->setBreadcrumbLanguageTranslator();
+
+        $this->setData('languages', $this->getLanguagesTranslator());
+
         $this->outputLanguageTranslator();
+    }
+
+    /**
+     * Returns an array of sorted languages
+     * @return array
+     */
+    protected function getLanguagesTranslator()
+    {
+        $languages = $this->language->getList();
+        gplcart_array_sort($languages, 'name');
+        return gplcart_array_split($languages, 6);
     }
 
     /**
@@ -145,7 +159,7 @@ class Translator extends BackendController
 
         list($module_id, $file) = $parts;
 
-        if (gplcart_is_absolute_path($file)) {
+        if (gplcart_path_is_absolute($file)) {
             return array($file, "$module_id-" . basename($file));
         }
 
@@ -169,7 +183,7 @@ class Translator extends BackendController
             list($module_id, $file) = $parts;
         } else {
 
-            $file = gplcart_absolute_path(gplcart_string_decode($hash));
+            $file = gplcart_path_absolute(gplcart_string_decode($hash));
             if (!$this->translator->isTranslationFile($file, $this->data_language['code'])) {
                 return array();
             }
@@ -479,7 +493,7 @@ class Translator extends BackendController
      */
     protected function buildFileInfoTranslator($file)
     {
-        $path = gplcart_relative_path($file);
+        $path = gplcart_path_relative($file);
         $context = str_replace(array('-', '_'), array('/', '/*/'), pathinfo(basename($path), PATHINFO_FILENAME));
 
         $langcode = $this->data_language['code'];
@@ -581,7 +595,6 @@ class Translator extends BackendController
 
         if ($imported > 0) {
             $this->setMessage($this->text('Imported @num translation(s). Now you can <a href="@url">refresh language</a>', array('@num' => $imported, '@url' => $this->url('admin/settings/language'))), 'success');
-            $this->language->refresh($this->data_language['code']);
         }
     }
 
@@ -654,7 +667,7 @@ class Translator extends BackendController
 
         list($module_id, $file) = $parsed;
 
-        if (gplcart_is_absolute_path($file)) {
+        if (gplcart_path_is_absolute($file)) {
             $this->data_content = $this->language->parseCsv($file);
         } else {
             $list = $this->translator->getImportList();
