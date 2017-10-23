@@ -170,7 +170,7 @@ class Translator extends BackendController
     /**
      * Parses a hash string containing module ID and translation file
      * @param string $hash
-     * @return boolean
+     * @return array
      */
     protected function parseHashTranslator($hash)
     {
@@ -533,6 +533,7 @@ class Translator extends BackendController
 
     /**
      * Displays list of translation files available for import
+     * @param string $langcode
      */
     public function listImportTranslator($langcode)
     {
@@ -569,7 +570,6 @@ class Translator extends BackendController
 
     /**
      * Bulk actions for selected translations
-     * @return boolean
      */
     protected function actionImportTranslator()
     {
@@ -581,7 +581,7 @@ class Translator extends BackendController
                 list($module_id, $file) = explode('-', $id, 2);
                 if (isset($submitted[$module_id])) {
                     $this->setMessage($this->text('Please select only one file per module'), 'warning');
-                    return false;
+                    return null;
                 }
 
                 $submitted[$module_id] = $file;

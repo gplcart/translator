@@ -182,6 +182,7 @@ class Translator extends Model
 
     /**
      * Returns an array of scanned and prepared translations
+     * @param string|null $langcode
      * @return array
      */
     public function getImportList($langcode = null)
@@ -333,6 +334,7 @@ class Translator extends Model
      * Prepare an array of translations
      * @param array $data
      * @param string $file
+     * @param string $langcode
      * @return array
      */
     protected function prepareImportTranslations(array $data, $file, $langcode)
