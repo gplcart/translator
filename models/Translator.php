@@ -9,8 +9,9 @@
 
 namespace gplcart\modules\translator\models;
 
-use gplcart\core\Model,
-    gplcart\core\Cache;
+use gplcart\core\Cache,
+    gplcart\core\Config,
+    gplcart\core\Hook;
 use gplcart\core\helpers\Zip as ZipHelper;
 use gplcart\core\models\Language as LanguageModel,
     gplcart\core\models\File as FileModel;
@@ -18,8 +19,26 @@ use gplcart\core\models\Language as LanguageModel,
 /**
  * Manages basic behaviors and data related to Translator module
  */
-class Translator extends Model
+class Translator
 {
+
+    /**
+     * Hook class instance
+     * @var \gplcart\core\Hook $hook
+     */
+    protected $hook;
+
+    /**
+     * Config class instance
+     * @var \gplcart\core\Config $config
+     */
+    protected $config;
+
+    /**
+     * Cache class instance
+     * @var \gplcart\core\Cache $cache
+     */
+    protected $cache;
 
     /**
      * File model class instance
@@ -34,27 +53,24 @@ class Translator extends Model
     protected $zip;
 
     /**
-     * Cache class instance
-     * @var \gplcart\core\Cache $cache
-     */
-    protected $cache;
-
-    /**
      * Language model class instance
      * @var \gplcart\core\models\Language $language
      */
     protected $language;
 
     /**
+     * @param Hook $hook
+     * @param Config $config
+     * @param Cache $cache
      * @param ZipHelper $zip
      * @param FileModel $file
      * @param LanguageModel $language
-     * @param Cache $cache
      */
-    public function __construct(ZipHelper $zip, FileModel $file,
-            LanguageModel $language, Cache $cache)
+    public function __construct(Hook $hook, Config $config, Cache $cache, ZipHelper $zip,
+            FileModel $file, LanguageModel $language)
     {
-        parent::__construct();
+        $this->hook = $hook;
+        $this->config = $config;
 
         $this->zip = $zip;
         $this->file = $file;
