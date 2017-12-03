@@ -53,8 +53,7 @@ class Translator extends BackendController
      * @param FileModel $file
      * @param TranslatorModuleModel $translator
      */
-    public function __construct(FileModel $file,
-            TranslatorModuleModel $translator)
+    public function __construct(FileModel $file, TranslatorModuleModel $translator)
     {
         parent::__construct();
 
@@ -99,7 +98,12 @@ class Translator extends BackendController
      */
     protected function setBreadcrumbLanguageTranslator()
     {
-        $this->setBreadcrumbHome();
+        $breadcrumb = array(
+            'url' => $this->url('admin'),
+            'text' => $this->text('Dashboard')
+        );
+
+        $this->setBreadcrumb($breadcrumb);
     }
 
     /**
