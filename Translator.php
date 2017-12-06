@@ -9,22 +9,11 @@
 
 namespace gplcart\modules\translator;
 
-use gplcart\core\Module,
-    gplcart\core\Config;
-
 /**
  * Main class for Translator module
  */
-class Translator extends Module
+class Translator
 {
-
-    /**
-     * @param Config $config
-     */
-    public function __construct(Config $config)
-    {
-        parent::__construct($config);
-    }
 
     /**
      * Implements hook "module.install.before"
@@ -34,10 +23,6 @@ class Translator extends Module
     {
         if (!class_exists('ZipArchive')) {
             $result = $this->getLanguage()->text('Class ZipArchive does not exist');
-        }
-
-        if (!function_exists('curl_init')) {
-            $result = $this->getLanguage()->text('CURL library is not enabled');
         }
     }
 
@@ -95,6 +80,15 @@ class Translator extends Module
         $permissions['module_translator_delete'] = /* @text */'Translator: delete translations';
         $permissions['module_translator_import'] = /* @text */'Translator: import translations';
         $permissions['module_translator_download'] = /* @text */'Translator: download translations';
+    }
+
+    /**
+     * Language model class instance
+     * @return \gplcart\core\models\Language
+     */
+    protected function getLanguage()
+    {
+        return Container::get('gplcart\\core\\models\\Language');
     }
 
 }

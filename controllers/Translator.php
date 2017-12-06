@@ -199,7 +199,7 @@ class Translator extends BackendController
             }
         }
 
-        if ($module_id !== 'core' && !$this->config->getModule($module_id)) {
+        if ($module_id !== 'core' && !$this->module->get($module_id)) {
             return array();
         }
 
@@ -297,7 +297,7 @@ class Translator extends BackendController
         $this->setBreadcrumbUploadTranslator();
 
         $this->setData('language', $this->data_language);
-        $this->setData('modules', $this->config->getModules());
+        $this->setData('modules', $this->module->getList());
 
         $this->submitUploadTranslator();
         $this->outputUploadTranslator();
@@ -378,7 +378,7 @@ class Translator extends BackendController
     {
         $scope = $this->getSubmitted('scope');
 
-        if (!empty($scope) && !$this->config->getModule($scope)) {
+        if (!empty($scope) && !$this->module->get($scope)) {
             $this->setError('scope', $this->text('@field has invalid value', array('@field' => $scope)));
             return false;
         }
@@ -457,7 +457,7 @@ class Translator extends BackendController
     {
         $files = array($this->language->getFile($this->data_language['code']));
 
-        foreach (array_keys($this->config->getModules()) as $module_id) {
+        foreach (array_keys($this->module->getList()) as $module_id) {
             $files[$module_id] = $this->language->getFile($this->data_language['code'], $module_id);
         }
 
@@ -550,7 +550,7 @@ class Translator extends BackendController
         $this->setBreadcrumbListImportTranslator();
 
         $this->setData('language', $this->data_language);
-        $this->setData('modules', $this->config->getModules());
+        $this->setData('modules', $this->module->getList());
         $this->setData('list', $this->translator->getImportList($langcode));
         $this->setData('time', $this->config->get('module_translator_saved', 0));
         $this->setData('download_url', $this->translator->getImportDownloadUrl());

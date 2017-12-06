@@ -11,7 +11,8 @@ namespace gplcart\modules\translator\models;
 
 use gplcart\core\Cache,
     gplcart\core\Config,
-    gplcart\core\Hook;
+    gplcart\core\Hook,
+    gplcart\core\Module;
 use gplcart\core\helpers\Zip as ZipHelper;
 use gplcart\core\models\Language as LanguageModel,
     gplcart\core\models\File as FileModel;
@@ -33,6 +34,12 @@ class Translator
      * @var \gplcart\core\Config $config
      */
     protected $config;
+
+    /**
+     * Module class instance
+     * @var \gplcart\core\Module $module
+     */
+    protected $module;
 
     /**
      * Cache class instance
@@ -62,14 +69,16 @@ class Translator
      * @param Hook $hook
      * @param Config $config
      * @param Cache $cache
+     * @param Module $module
      * @param ZipHelper $zip
      * @param FileModel $file
      * @param LanguageModel $language
      */
-    public function __construct(Hook $hook, Config $config, Cache $cache, ZipHelper $zip,
-            FileModel $file, LanguageModel $language)
+    public function __construct(Hook $hook, Config $config, Cache $cache, Module $module,
+            ZipHelper $zip, FileModel $file, LanguageModel $language)
     {
         $this->hook = $hook;
+        $this->module = $module;
         $this->config = $config;
 
         $this->zip = $zip;
@@ -187,7 +196,7 @@ class Translator
     public function getModuleIdFromPath($file)
     {
         $module_id = basename(dirname(dirname($file)));
-        $module = $this->config->getModule($module_id);
+        $module = $this->module->get($module_id);
 
         if (!empty($module) && strpos($file, $this->language->getModuleDirectory($module_id)) === 0) {
             return $module_id;
@@ -326,7 +335,7 @@ class Translator
         $version = gplcart_version(true);
 
         if (!empty($items["$version.x"])) {
-            $modules = $this->config->getModules();
+            $modules = $this->module->getList();
             foreach ($items["$version.x"] as $module_id => $translations) {
                 if ($module_id === 'core' || isset($modules[$module_id])) {
                     $list[$module_id] = $this->prepareImportTranslations($translations, $file, $langcode);
