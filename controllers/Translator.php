@@ -9,7 +9,7 @@
 
 namespace gplcart\modules\translator\controllers;
 
-use gplcart\core\models\File as FileModel;
+use gplcart\core\models\FileTransfer as FileTransferModel;
 use gplcart\core\controllers\backend\Controller as BackendController;
 use gplcart\modules\translator\models\Translator as TranslatorModuleModel;
 
@@ -18,18 +18,17 @@ use gplcart\modules\translator\models\Translator as TranslatorModuleModel;
  */
 class Translator extends BackendController
 {
-
-    /**
-     * File model class instance
-     * @var \gplcart\core\models\File $file
-     */
-    protected $file;
-
     /**
      * Translator model class instance
      * @var \gplcart\modules\translator\models\Translator $translator
      */
     protected $translator;
+
+    /**
+     * File transfer model class instance
+     * @var \gplcart\core\models\FileTransfer $file_transfer
+     */
+    protected $file_transfer;
 
     /**
      * The current translation file
@@ -48,17 +47,17 @@ class Translator extends BackendController
      * @var array
      */
     protected $data_language;
-
+    
     /**
-     * @param FileModel $file
+     * @param FileTransferModel $file_transfer
      * @param TranslatorModuleModel $translator
      */
-    public function __construct(FileModel $file, TranslatorModuleModel $translator)
+    public function __construct(FileTransferModel $file_transfer, TranslatorModuleModel $translator)
     {
         parent::__construct();
 
-        $this->file = $file;
         $this->translator = $translator;
+        $this->file_transfer = $file_transfer;
     }
 
     /**
@@ -68,9 +67,7 @@ class Translator extends BackendController
     {
         $this->setTitleLanguageTranslator();
         $this->setBreadcrumbLanguageTranslator();
-
         $this->setData('languages', $this->getLanguagesTranslator());
-
         $this->outputLanguageTranslator();
     }
 
@@ -383,7 +380,7 @@ class Translator extends BackendController
             return false;
         }
 
-        $this->setSubmitted('destination', $this->language->getFile($this->data_language['code'], $scope));
+        $this->setSubmitted('destination', $this->translation->getFile($this->data_language['code'], $scope));
         return true;
     }
 
@@ -404,14 +401,14 @@ class Translator extends BackendController
             return false;
         }
 
-        $result = $this->file->upload($file, 'csv');
+        $result = $this->file_transfer->upload($file, 'csv');
 
         if ($result !== true) {
             $this->setError('file', $result);
             return false;
         }
 
-        $this->setSubmitted('file', $this->file->getTransferred());
+        $this->setSubmitted('file', $this->file_transfer->getTransferred());
         return true;
     }
 
@@ -455,10 +452,10 @@ class Translator extends BackendController
      */
     protected function getPrimaryFilesTranslator()
     {
-        $files = array($this->language->getFile($this->data_language['code']));
+        $files = array($this->translation->getFile($this->data_language['code']));
 
         foreach (array_keys($this->module->getList()) as $module_id) {
-            $files[$module_id] = $this->language->getFile($this->data_language['code'], $module_id);
+            $files[$module_id] = $this->translation->getFile($this->data_language['code'], $module_id);
         }
 
         foreach ($files as $id => $file) {
@@ -478,7 +475,7 @@ class Translator extends BackendController
      */
     protected function getCompiledFilesTranslator()
     {
-        $directory = $this->language->getCompiledDirectory($this->data_language['code']);
+        $directory = $this->translation->getCompiledDirectory($this->data_language['code']);
 
         $files = array();
         if (is_dir($directory)) {
@@ -501,8 +498,8 @@ class Translator extends BackendController
         $context = str_replace(array('-', '_'), array('/', '/*/'), pathinfo(basename($path), PATHINFO_FILENAME));
 
         $langcode = $this->data_language['code'];
-        $js_file = $this->language->getContextJsFile($langcode);
-        $common_file = $this->language->getCommonFile($langcode);
+        $js_file = $this->translation->getContextJsFile($langcode);
+        $common_file = $this->translation->getCommonFile($langcode);
 
         if (substr($js_file, -strlen($path)) === $path) {
             $context = $this->text('No context');
@@ -672,7 +669,7 @@ class Translator extends BackendController
         list($module_id, $file) = $parsed;
 
         if (gplcart_path_is_absolute($file)) {
-            $this->data_content = $this->language->parseCsv($file);
+            $this->data_content = $this->translation->parseCsv($file);
         } else {
             $list = $this->translator->getImportList();
             if (!isset($list[$module_id][$this->data_language['code']][$file]['content'])) {

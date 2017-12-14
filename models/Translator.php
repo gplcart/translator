@@ -15,7 +15,8 @@ use gplcart\core\Cache,
     gplcart\core\Module;
 use gplcart\core\helpers\Zip as ZipHelper;
 use gplcart\core\models\Language as LanguageModel,
-    gplcart\core\models\File as FileModel;
+    gplcart\core\models\Translation as TranslationModel,
+    gplcart\core\models\FileTransfer as FileTransferModel;
 
 /**
  * Manages basic behaviors and data related to Translator module
@@ -48,10 +49,10 @@ class Translator
     protected $cache;
 
     /**
-     * File model class instance
-     * @var \gplcart\core\models\File $file
+     * File transfer model class instance
+     * @var \gplcart\core\models\FileTransfer $file_transfer
      */
-    protected $file;
+    protected $file_transfer;
 
     /**
      * Zip helper class instance
@@ -60,31 +61,40 @@ class Translator
     protected $zip;
 
     /**
+     * Translation UI model class instance
+     * @var \gplcart\core\models\Translation $translation
+     */
+    protected $translation;
+
+    /**
      * Language model class instance
      * @var \gplcart\core\models\Language $language
      */
     protected $language;
 
     /**
+     * Translator constructor.
      * @param Hook $hook
      * @param Config $config
      * @param Cache $cache
      * @param Module $module
      * @param ZipHelper $zip
-     * @param FileModel $file
+     * @param FileTransferModel $file_transfer
      * @param LanguageModel $language
+     * @param TranslationModel $translation
      */
     public function __construct(Hook $hook, Config $config, Cache $cache, Module $module,
-            ZipHelper $zip, FileModel $file, LanguageModel $language)
+            ZipHelper $zip, FileTransferModel $file_transfer, LanguageModel $language, TranslationModel $translation)
     {
         $this->hook = $hook;
         $this->module = $module;
         $this->config = $config;
 
         $this->zip = $zip;
-        $this->file = $file;
         $this->cache = $cache;
         $this->language = $language;
+        $this->translation = $translation;
+        $this->file_transfer = $file_transfer;
     }
 
     /**
@@ -97,7 +107,7 @@ class Translator
         $lines = array();
 
         if (is_file($file)) {
-            $lines = $this->language->parseCsv($file);
+            $lines = $this->translation->parseCsv($file);
         }
 
         $result = array(
@@ -184,7 +194,7 @@ class Translator
     {
         return is_file($file)//
                 && pathinfo($file, PATHINFO_EXTENSION) === 'csv'//
-                && (strpos($file, $this->language->getDirectory($langcode)) === 0//
+                && (strpos($file, $this->translation->getDirectory($langcode)) === 0//
                 || $this->getModuleIdFromPath($file));
     }
 
@@ -198,7 +208,7 @@ class Translator
         $module_id = basename(dirname(dirname($file)));
         $module = $this->module->get($module_id);
 
-        if (!empty($module) && strpos($file, $this->language->getModuleDirectory($module_id)) === 0) {
+        if (!empty($module) && strpos($file, $this->translation->getModuleDirectory($module_id)) === 0) {
             return $module_id;
         }
 
@@ -264,7 +274,7 @@ class Translator
             $module_id = '';
         }
 
-        $destination = $this->language->getFile($langcode, $module_id);
+        $destination = $this->translation->getFile($langcode, $module_id);
 
         $result = false;
         if ($this->prepareDirectory($destination)) {
@@ -384,7 +394,7 @@ class Translator
                 continue;
             }
 
-            $content = $this->language->parseCsv("zip://$file#$path");
+            $content = $this->translation->parseCsv("zip://$file#$path");
             $total = count($content);
             $translated = $this->countTranslated($content);
 
@@ -456,7 +466,7 @@ class Translator
     public function downloadImportFile($destination)
     {
         try {
-            $result = $this->file->download($this->getImportDownloadUrl(), 'zip', $destination);
+            $result = $this->file_transfer->download($this->getImportDownloadUrl(), 'zip', $destination);
             if ($result !== true) {
                 trigger_error($result);
                 return false;
