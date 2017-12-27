@@ -12,7 +12,7 @@ namespace gplcart\modules\translator;
 /**
  * Main class for Translator module
  */
-class Translator
+class Module
 {
 
     /**
