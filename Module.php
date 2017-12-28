@@ -9,6 +9,8 @@
 
 namespace gplcart\modules\translator;
 
+use gplcart\core\Container;
+
 /**
  * Main class for Translator module
  */
