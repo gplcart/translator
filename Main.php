@@ -14,7 +14,7 @@ use gplcart\core\Container;
 /**
  * Main class for Translator module
  */
-class Module
+class Main
 {
 
     /**
