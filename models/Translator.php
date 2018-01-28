@@ -9,6 +9,8 @@
 
 namespace gplcart\modules\translator\models;
 
+use Exception;
+use DOMDocument;
 use gplcart\core\Cache,
     gplcart\core\Config,
     gplcart\core\Hook,
@@ -20,6 +22,7 @@ use gplcart\core\models\Language as LanguageModel,
 
 /**
  * Manages basic behaviors and data related to Translator module
+ * @todo Validate HTML before import
  */
 class Translator
 {
@@ -84,7 +87,8 @@ class Translator
      * @param TranslationModel $translation
      */
     public function __construct(Hook $hook, Config $config, Cache $cache, Module $module,
-            ZipHelper $zip, FileTransferModel $file_transfer, LanguageModel $language, TranslationModel $translation)
+            ZipHelper $zip, FileTransferModel $file_transfer, LanguageModel $language,
+            TranslationModel $translation)
     {
         $this->hook = $hook;
         $this->module = $module;
@@ -317,7 +321,7 @@ class Translator
 
         try {
             $items = $this->zip->set($file)->getList();
-        } catch (\Exception $ex) {
+        } catch (Exception $ex) {
             trigger_error($ex->getMessage());
             return array();
         }
@@ -471,7 +475,7 @@ class Translator
                 trigger_error($result);
                 return false;
             }
-        } catch (\Exception $ex) {
+        } catch (Exception $ex) {
             trigger_error($ex->getMessage());
             return false;
         }
@@ -510,6 +514,32 @@ class Translator
     public function getImportFilePath()
     {
         return gplcart_file_private_temp('translator-import.zip');
+    }
+
+    /**
+     * Detect invalid HTML
+     * @param string $string
+     * @return boolean
+     */
+    public function isInvalidHtml($string)
+    {
+        if (strpos($string, '>') === false && strpos($string, '<') === false) {
+            return false;
+        }
+
+        libxml_use_internal_errors(true);
+
+        $dom = new DOMDocument;
+        $dom->loadHTML($string);
+
+        // Strip wrapping html and body tags
+        $mock = new DOMDocument;
+        $body = $dom->getElementsByTagName('body')->item(0);
+        foreach ($body->childNodes as $child) {
+            $mock->appendChild($mock->importNode($child, true));
+        }
+
+        return trim($mock->saveHTML()) !== $string;
     }
 
 }
