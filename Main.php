@@ -9,8 +9,6 @@
 
 namespace gplcart\modules\translator;
 
-use gplcart\core\Container;
-
 /**
  * Main class for Translator module
  */
@@ -24,7 +22,7 @@ class Main
     public function hookModuleInstallBefore(&$result)
     {
         if (!class_exists('ZipArchive')) {
-            $result = $this->getTranslationModel()->text('Class ZipArchive does not exist');
+            $result = gplcart_text('Class ZipArchive does not exist');
         }
     }
 
@@ -35,7 +33,9 @@ class Main
     public function hookRouteList(array &$routes)
     {
         $routes['admin/tool/translator'] = array(
-            'menu' => array('admin' => /* @text */'Translator'),
+            'menu' => array(
+                'admin' => 'Translator' // @text
+            ),
             'access' => 'module_translator',
             'handlers' => array(
                 'controller' => array('gplcart\\modules\\translator\\controllers\\Translator', 'languageTranslator')
@@ -77,20 +77,11 @@ class Main
      */
     public function hookUserRolePermissions(array &$permissions)
     {
-        $permissions['module_translator'] = /* @text */'Translator: access';
-        $permissions['module_translator_upload'] = /* @text */'Translator: upload translations';
-        $permissions['module_translator_delete'] = /* @text */'Translator: delete translations';
-        $permissions['module_translator_import'] = /* @text */'Translator: import translations';
-        $permissions['module_translator_download'] = /* @text */'Translator: download translations';
-    }
-
-    /**
-     * Translation UI model class instance
-     * @return \gplcart\core\models\Translation
-     */
-    protected function getTranslationModel()
-    {
-        return Container::get('gplcart\\core\\models\\Translation');
+        $permissions['module_translator'] = 'Translator: access'; // @text
+        $permissions['module_translator_upload'] = 'Translator: upload translations'; // @text
+        $permissions['module_translator_delete'] = 'Translator: delete translations'; // @text
+        $permissions['module_translator_import'] = 'Translator: import translations'; // @text
+        $permissions['module_translator_download'] = 'Translator: download translations'; // @text
     }
 
 }
