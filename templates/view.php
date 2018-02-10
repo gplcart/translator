@@ -12,15 +12,13 @@
 <?php } else { ?>
 <ul class="nav nav-tabs">
   <?php if ($this->access('module_translator')) { ?>
-  <li class="<?php echo empty($_query['tab']) ? 'active' : ''; ?>"><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}"); ?>"><?php echo $this->text('Original translations'); ?></a></li>
-  <li class="<?php echo (isset($_query['tab']) && $_query['tab'] === 'compiled') ? 'active' : ''; ?>"><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}", array('tab' => 'compiled')); ?>"><?php echo $this->text('Compiled translations'); ?></a></li>
+  <li><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}"); ?>"><?php echo $this->text('Original translations'); ?></a></li>
+  <li><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}", array('tab' => 'compiled')); ?>"><?php echo $this->text('Compiled translations'); ?></a></li>
   <?php } ?>
   <?php if ($this->access('module_translator_upload') && $this->access('file_upload')) { ?>
-  <li class="<?php echo (isset($_query['tab']) && $_query['tab'] === 'upload') ? 'active' : ''; ?>"><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/upload", array('tab' => 'upload')); ?>"><?php echo $this->text('Upload'); ?></a></li>
+  <li><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/upload"); ?>"><?php echo $this->text('Upload'); ?></a></li>
   <?php } ?>
-  <?php if ($this->access('module_translator_import')) { ?>
-  <li class="<?php echo (isset($_query['tab']) && $_query['tab'] === 'import') ? 'active' : ''; ?>"><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/import", array('tab' => 'import')); ?>"><?php echo $this->text('Import'); ?></a></li>
-  <?php } ?>
+  <li class="active"><a><?php echo $this->text('View'); ?></a></li>
 </ul>
 <div class="tab-content">
   <table class="table table-condensed table-striped view-translation">

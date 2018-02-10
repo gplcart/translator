@@ -7,19 +7,48 @@
  * @var $this \gplcart\core\controllers\backend\Controller
  */
 ?>
+<form class="form-horizontal">
+  <div class="form-group">
+    <label class="col-md-2 control-label"><?php echo $this->text('Language'); ?></label>
+    <div class="col-md-2">
+      <select class="form-control" onchange="this.options[this.selectedIndex].value && (window.location = this.options[this.selectedIndex].value);">
+        <option value=""><?php echo $this->text('- select -'); ?></option>
+          <?php foreach($languages as $code => $info) { ?>
+            <option value="<?php echo $this->url("admin/tool/translator/$code/$tab"); ?>"<?php echo isset($language['code']) && $language['code'] === $code ? ' selected' : ''; ?>><?php echo $this->e($info['name']); ?></option>
+          <?php } ?>
+      </select>
+    </div>
+  </div>
+</form>
 <form method="post">
   <input type="hidden" name="token" value="<?php echo $_token; ?>">
   <ul class="nav nav-tabs">
-    <li class="<?php echo empty($_query['tab']) ? 'active' : ''; ?>"><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}"); ?>"><?php echo $this->text('Original translations'); ?></a></li>
-    <li class="<?php echo (isset($_query['tab']) && $_query['tab'] === 'compiled') ? 'active' : ''; ?>"><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}", array('tab' => 'compiled')); ?>"><?php echo $this->text('Compiled translations'); ?></a></li>
+    <li class="<?php echo empty($tab) ? 'active' : ''; ?>">
+      <a href="<?php echo $this->url("admin/tool/translator/{$language['code']}"); ?>">
+          <?php echo $this->text('Original translations'); ?>
+      </a>
+    </li>
+    <li class="<?php echo $tab === 'compiled' ? 'active' : ''; ?>">
+      <a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/compiled"); ?>">
+          <?php echo $this->text('Compiled translations'); ?>
+      </a>
+    </li>
     <?php if ($this->access('module_translator_upload') && $this->access('file_upload')) { ?>
-    <li class="<?php echo (isset($_query['tab']) && $_query['tab'] === 'upload') ? 'active' : ''; ?>"><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/upload", array('tab' => 'upload')); ?>"><?php echo $this->text('Upload'); ?></a></li>
-    <?php } ?>
-    <?php if ($this->access('module_translator_import')) { ?>
-    <li class="<?php echo (isset($_query['tab']) && $_query['tab'] === 'import') ? 'active' : ''; ?>"><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/import", array('tab' => 'import')); ?>"><?php echo $this->text('Import'); ?></a></li>
+    <li class="<?php echo $tab === 'upload' ? 'active' : ''; ?>">
+      <a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/upload"); ?>">
+          <?php echo $this->text('Upload'); ?>
+      </a>
+    </li>
     <?php } ?>
   </ul>
   <div class="tab-content">
+    <p>
+      <?php if($tab === 'compiled') { ?>
+        <?php echo $this->text('Compiled translations are auto-generated context translations made from an original translation file. They will be automatically re-generated after deletion'); ?>
+      <?php } else { ?>
+          <?php echo $this->text("Original translations are used as a source for context compiled translations. Unlike of context translations, they are static and won't be automatically re-generated, so edit/delete them cautiously"); ?>
+      <?php } ?>
+    </p>
     <?php if (empty($files)) { ?>
     <?php echo $this->text('There are no items yet'); ?>
     <?php } else { ?>
@@ -74,7 +103,7 @@
           <?php if($this->access('module_translator_download')) { ?>
           <ul class="list-inline">
             <li><a href="<?php echo $this->url('', array('download' => $file['hash'])); ?>"><?php echo $this->lower($this->text('Download')); ?></a></li>
-            <li><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/view/{$file['hash']}", array('tab' => isset($_query['tab']) && $_query['tab'] === 'compiled' ? 'compiled' : '')); ?>"><?php echo $this->lower($this->text('View')); ?></a></li>
+            <li><a href="<?php echo $this->url("admin/tool/translator/{$language['code']}/view/{$file['hash']}"); ?>"><?php echo $this->lower($this->text('View')); ?></a></li>
           </ul>
           <?php } ?>
         </td>

@@ -9,22 +9,13 @@
 
 namespace gplcart\modules\translator;
 
+use gplcart\core\Container;
+
 /**
  * Main class for Translator module
  */
 class Main
 {
-
-    /**
-     * Implements hook "module.install.before"
-     * @param null|string $result
-     */
-    public function hookModuleInstallBefore(&$result)
-    {
-        if (!class_exists('ZipArchive')) {
-            $result = gplcart_text('Class ZipArchive does not exist');
-        }
-    }
 
     /**
      * Implements hook "route.list"
@@ -38,7 +29,7 @@ class Main
             ),
             'access' => 'module_translator',
             'handlers' => array(
-                'controller' => array('gplcart\\modules\\translator\\controllers\\Translator', 'languageTranslator')
+                'controller' => array('gplcart\\modules\\translator\\controllers\\Translator', 'filesTranslator')
             )
         );
 
@@ -46,6 +37,13 @@ class Main
             'access' => 'module_translator',
             'handlers' => array(
                 'controller' => array('gplcart\\modules\\translator\\controllers\\Translator', 'filesTranslator')
+            )
+        );
+
+        $routes['admin/tool/translator/(\w+)/compiled'] = array(
+            'access' => 'module_translator',
+            'handlers' => array(
+                'controller' => array('gplcart\\modules\\translator\\controllers\\Translator', 'compiledFilesTranslator')
             )
         );
 
@@ -62,13 +60,6 @@ class Main
                 'controller' => array('gplcart\\modules\\translator\\controllers\\Translator', 'viewTranslator')
             )
         );
-
-        $routes['admin/tool/translator/(\w+)/import'] = array(
-            'access' => 'module_translator_import',
-            'handlers' => array(
-                'controller' => array('gplcart\\modules\\translator\\controllers\\Translator', 'listImportTranslator')
-            )
-        );
     }
 
     /**
@@ -80,8 +71,17 @@ class Main
         $permissions['module_translator'] = 'Translator: access'; // @text
         $permissions['module_translator_upload'] = 'Translator: upload translations'; // @text
         $permissions['module_translator_delete'] = 'Translator: delete translations'; // @text
-        $permissions['module_translator_import'] = 'Translator: import translations'; // @text
         $permissions['module_translator_download'] = 'Translator: download translations'; // @text
     }
 
+    /**
+     * Returns module's model class instance
+     * @return \gplcart\modules\translator\models\Translator
+     */
+    public function getModel()
+    {
+        /** @var \gplcart\modules\translator\models\Translator $instance */
+        $instance = Container::get('gplcart\\modules\\translator\\models\\Translator');
+        return $instance;
+    }
 }

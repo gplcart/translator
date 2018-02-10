@@ -9,8 +9,8 @@
 
 namespace gplcart\modules\translator\controllers;
 
-use gplcart\core\models\FileTransfer as FileTransferModel;
 use gplcart\core\controllers\backend\Controller as BackendController;
+use gplcart\core\models\FileTransfer as FileTransferModel;
 use gplcart\modules\translator\models\Translator as TranslatorModuleModel;
 
 /**
@@ -31,12 +31,6 @@ class Translator extends BackendController
     protected $file_transfer;
 
     /**
-     * The current translation file
-     * @var string
-     */
-    protected $data_file;
-
-    /**
      * An array of translation strings
      * @var array
      */
@@ -47,7 +41,7 @@ class Translator extends BackendController
      * @var array
      */
     protected $data_language;
-    
+
     /**
      * @param FileTransferModel $file_transfer
      * @param TranslatorModuleModel $translator
@@ -61,74 +55,46 @@ class Translator extends BackendController
     }
 
     /**
-     * Displays the language list page
+     * Page callback
+     * Displays the compiled files overview page
+     * @param $langcode
      */
-    public function languageTranslator()
+    public function compiledFilesTranslator($langcode)
     {
-        $this->setTitleLanguageTranslator();
-        $this->setBreadcrumbLanguageTranslator();
-        $this->setData('languages', $this->getLanguagesTranslator());
-        $this->outputLanguageTranslator();
+        $this->filesTranslator($langcode, 'compiled');
     }
 
     /**
-     * Returns an array of sorted languages
+     * Page callback
+     * Displays the file overview page
+     * @param string $langcode
+     * @param string $tab
+     */
+    public function filesTranslator($langcode = null, $tab = '')
+    {
+        $this->setLanguageTranslator($langcode);
+        $this->downloadFileTranslator();
+        $this->actionFilesTranslator();
+        $this->setTitleFilesTranslator();
+        $this->setBreadcrumbFilesTranslator();
+
+        $this->setData('tab', $tab);
+        $this->setData('language', $this->data_language);
+        $this->setData('files', $this->getFilesTranslator($tab));
+        $this->setData('languages', $this->getLanguagesTranslator());
+
+        $this->outputFilesTranslator();
+    }
+
+    /**
+     * Returns a sorted array of languages
      * @return array
      */
     protected function getLanguagesTranslator()
     {
-        $languages = $this->language->getList();
-        gplcart_array_sort($languages, 'name');
-        return gplcart_array_split($languages, 6);
-    }
-
-    /**
-     * Set titles on the language list page
-     */
-    protected function setTitleLanguageTranslator()
-    {
-        $this->setTitle($this->text('Translator'));
-    }
-
-    /**
-     * Sets breadcrumbs on the language list page
-     */
-    protected function setBreadcrumbLanguageTranslator()
-    {
-        $breadcrumb = array(
-            'url' => $this->url('admin'),
-            'text' => $this->text('Dashboard')
-        );
-
-        $this->setBreadcrumb($breadcrumb);
-    }
-
-    /**
-     * Render and output the language list page
-     */
-    protected function outputLanguageTranslator()
-    {
-        $this->output('translator|languages');
-    }
-
-    /**
-     * Displays the file overview page
-     * @param string $langcode
-     */
-    public function filesTranslator($langcode)
-    {
-        $this->setLanguageTranslator($langcode);
-
-        $this->downloadFileTranslator();
-        $this->actionFilesTranslator();
-
-        $this->setTitleFilesTranslator();
-        $this->setBreadcrumbFilesTranslator();
-
-        $this->setData('language', $this->data_language);
-        $this->setData('files', $this->getFilesTranslator());
-
-        $this->outputFilesTranslator();
+        $list = $this->language->getList();
+        gplcart_array_sort($list, 'name');
+        return $list;
     }
 
     /**
@@ -137,8 +103,11 @@ class Translator extends BackendController
     protected function downloadFileTranslator()
     {
         $hash = $this->getQuery('download');
+
         if (!empty($hash) && $this->access('module_translator_download')) {
-            $info = $this->getDownloadFileTranslator($hash);
+
+            $info = $this->parseFileHash($hash);
+
             if (!empty($info)) {
                 $this->download($info[0], $info[1], array('text' => !empty($info[2])));
             }
@@ -146,11 +115,11 @@ class Translator extends BackendController
     }
 
     /**
-     * Returns an array of file
+     * Returns an array of file data
      * @param string $hash
      * @return array
      */
-    protected function getDownloadFileTranslator($hash)
+    protected function parseFileHash($hash)
     {
         $parts = $this->parseHashTranslator($hash);
 
@@ -164,36 +133,26 @@ class Translator extends BackendController
             return array($file, "$module_id-" . basename($file));
         }
 
-        $csv_string = $this->translator->readZip($module_id, $file, $this->data_language['code']);
-        return empty($csv_string) ? array() : array($csv_string, $hash, true);
+        return array();
     }
 
     /**
-     * Parses a hash string containing module ID and translation file
+     * Parses a hash string containing the module ID and translation file
      * @param string $hash
      * @return array
      */
     protected function parseHashTranslator($hash)
     {
-        if (pathinfo($hash, PATHINFO_EXTENSION) === 'csv') {
-            $parts = explode('-', $hash, 2);
-            if (empty($parts[1])) {
-                return array();
-            }
+        $file = gplcart_path_absolute(gplcart_string_decode($hash));
 
-            list($module_id, $file) = $parts;
-        } else {
+        if (!$this->translator->isTranslationFile($file, $this->data_language['code'])) {
+            return array();
+        }
 
-            $file = gplcart_path_absolute(gplcart_string_decode($hash));
-            if (!$this->translator->isTranslationFile($file, $this->data_language['code'])) {
-                return array();
-            }
+        $module_id = $this->translator->getModuleIdFromPath($file);
 
-            $module_id = $this->translator->getModuleIdFromPath($file);
-
-            if (empty($module_id)) {
-                $module_id = 'core';
-            }
+        if (empty($module_id)) {
+            $module_id = 'core';
         }
 
         if ($module_id !== 'core' && !$this->module->get($module_id)) {
@@ -211,6 +170,7 @@ class Translator extends BackendController
         list($selected, $action) = $this->getPostedAction();
 
         $deleted = 0;
+
         foreach ($selected as $hash) {
             if ($action === 'delete' && $this->access('module_translator_delete')) {
                 $deleted += (int) $this->deleteFileTranslator($hash);
@@ -218,8 +178,7 @@ class Translator extends BackendController
         }
 
         if ($deleted > 0) {
-            $message = $this->text('Deleted %num item(s)', array('%num' => $deleted));
-            $this->setMessage($message, 'success');
+            $this->setMessage($this->text('Deleted %num item(s)', array('%num' => $deleted)), 'success');
         }
     }
 
@@ -230,7 +189,7 @@ class Translator extends BackendController
      */
     protected function deleteFileTranslator($id)
     {
-        $info = $this->getDownloadFileTranslator($id);
+        $info = $this->parseFileHash($id);
 
         if (isset($info[0])) {
             return $this->translator->delete($info[0], $this->data_language['code']);
@@ -241,15 +200,16 @@ class Translator extends BackendController
 
     /**
      * Returns an array of files for the language
+     * @param string $tab
      * @return array
      */
-    protected function getFilesTranslator()
+    protected function getFilesTranslator($tab)
     {
-        if ($this->getQuery('tab') === 'compiled') {
+        if ($tab === 'compiled') {
             return $this->getCompiledFilesTranslator();
         }
 
-        return $this->getPrimaryFilesTranslator();
+        return $this->getOriginalFilesTranslator();
     }
 
     /**
@@ -257,8 +217,7 @@ class Translator extends BackendController
      */
     protected function setTitleFilesTranslator()
     {
-        $vars = array('%name' => $this->data_language['name']);
-        $this->setTitle($this->text('Translations for %name', $vars));
+        $this->setTitle($this->text('Translations for %name', array('%name' => $this->data_language['name'])));
     }
 
     /**
@@ -266,22 +225,16 @@ class Translator extends BackendController
      */
     protected function setBreadcrumbFilesTranslator()
     {
-        $breadcrumbs = array();
-
-        $breadcrumbs[] = array(
+        $breadcrumb = array(
             'url' => $this->url('admin'),
             'text' => $this->text('Dashboard')
         );
 
-        $breadcrumbs[] = array(
-            'url' => $this->url('admin/tool/translator'),
-            'text' => $this->text('Languages')
-        );
-
-        $this->setBreadcrumbs($breadcrumbs);
+        $this->setBreadcrumb($breadcrumb);
     }
 
     /**
+     * Page callback
      * Displays the upload translation page
      * @param string $langcode
      */
@@ -294,14 +247,26 @@ class Translator extends BackendController
         $this->setBreadcrumbUploadTranslator();
 
         $this->setData('language', $this->data_language);
-        $this->setData('modules', $this->module->getList());
+        $this->setData('modules', $this->getModulesTranslator());
+        $this->setData('languages', $this->getLanguagesTranslator());
 
         $this->submitUploadTranslator();
         $this->outputUploadTranslator();
     }
 
     /**
-     * Controls access to upload a translation file
+     * Returns an array of sorted modules
+     * @return array
+     */
+    protected function getModulesTranslator()
+    {
+        $modules = $this->module->getList();
+        gplcart_array_sort($modules, 'name');
+        return $modules;
+    }
+
+    /**
+     * Controls permissions to upload a translation file
      */
     protected function controlAccessUploadTranslator()
     {
@@ -314,8 +279,7 @@ class Translator extends BackendController
      */
     protected function setTitleUploadTranslator()
     {
-        $vars = array('%name' => $this->data_language['name']);
-        $this->setTitle($this->text('Upload translation for %name', $vars));
+        $this->setTitle($this->text('Upload translation for %name', array('%name' => $this->data_language['name'])));
     }
 
     /**
@@ -323,24 +287,12 @@ class Translator extends BackendController
      */
     protected function setBreadcrumbUploadTranslator()
     {
-        $breadcrumbs = array();
-
-        $breadcrumbs[] = array(
+        $breadcrumb = array(
             'url' => $this->url('admin'),
             'text' => $this->text('Dashboard')
         );
 
-        $breadcrumbs[] = array(
-            'url' => $this->url('admin/tool/translator'),
-            'text' => $this->text('Languages')
-        );
-
-        $breadcrumbs[] = array(
-            'url' => $this->url("admin/tool/translator/{$this->data_language['code']}"),
-            'text' => $this->text('Translations for %name', array('%name' => $this->data_language['name']))
-        );
-
-        $this->setBreadcrumbs($breadcrumbs);
+        $this->setBreadcrumb($breadcrumb);
     }
 
     /**
@@ -349,6 +301,7 @@ class Translator extends BackendController
     protected function submitUploadTranslator()
     {
         if ($this->isPosted('save') && $this->validateUploadTranslator()) {
+            $this->normalizeHtml();
             $this->copyFileTranslator();
         }
     }
@@ -360,7 +313,6 @@ class Translator extends BackendController
     protected function validateUploadTranslator()
     {
         $this->setSubmitted('translation');
-
         $this->validateUploadScopeTranslator();
         $this->validateUploadFileTranslator();
 
@@ -413,6 +365,29 @@ class Translator extends BackendController
     }
 
     /**
+     * Check and try to fix malformed HTML in the uploaded file
+     */
+    protected function normalizeHtml()
+    {
+        if ($this->isSubmitted('fix')) {
+
+            $fixed = array();
+            $file = $this->getSubmitted('file');
+            $lines = $this->translator->getFixedStrings($file, $fixed);
+
+            file_put_contents($file, ''); // Truncate the uploaded file
+
+            foreach ($lines as $line) {
+                gplcart_file_csv($file, $line);
+            }
+
+            if (!empty($fixed)) {
+                $this->setMessage($this->text('Fixed @num rows', array('@num' => count($fixed))), 'warning', true);
+            }
+        }
+    }
+
+    /**
      * Copy a uploaded translation
      */
     protected function copyFileTranslator()
@@ -421,13 +396,15 @@ class Translator extends BackendController
 
         $source = $this->getSubmitted('file');
         $destination = $this->getSubmitted('destination');
-        $result = $this->translator->copy($source, $destination);
 
-        if ($result) {
-            $this->redirect('', $this->text('Translation has been saved. Now you can <a href="@url">refresh language</a>', array('@url' => $this->url('admin/settings/language'))), 'success');
+        if (!$this->translator->copy($source, $destination)) {
+            $this->redirect('', $this->text('Translation has not been saved'), 'warning');
         }
 
-        $this->redirect('', $this->text('Translation has not been saved'), 'warning');
+        $message = $this->text('Translation has been saved. Now you can <a href="@url">refresh language</a>', array(
+            '@url' => $this->url('admin/settings/language')));
+
+        $this->redirect('', $message, 'success');
     }
 
     /**
@@ -450,7 +427,7 @@ class Translator extends BackendController
      * Returns an array of primary translations
      * @return array
      */
-    protected function getPrimaryFilesTranslator()
+    protected function getOriginalFilesTranslator()
     {
         $files = array($this->translation->getFile($this->data_language['code']));
 
@@ -478,6 +455,7 @@ class Translator extends BackendController
         $directory = $this->translation->getCompiledDirectory($this->data_language['code']);
 
         $files = array();
+
         if (is_dir($directory)) {
             foreach (gplcart_file_scan($directory, array('csv')) as $file) {
                 $files[] = $this->buildFileInfoTranslator($file);
@@ -525,6 +503,10 @@ class Translator extends BackendController
      */
     protected function setLanguageTranslator($langcode)
     {
+        if (!isset($langcode)) {
+            $langcode = $this->language->getDefault();
+        }
+
         $this->data_language = $this->language->get($langcode);
 
         if (empty($this->data_language)) {
@@ -533,110 +515,7 @@ class Translator extends BackendController
     }
 
     /**
-     * Displays list of translation files available for import
-     * @param string $langcode
-     */
-    public function listImportTranslator($langcode)
-    {
-        $this->setLanguageTranslator($langcode);
-
-        $this->actionImportTranslator();
-        $this->downloadFileTranslator();
-
-        $this->setTitleListImportTranslator();
-        $this->setBreadcrumbListImportTranslator();
-
-        $this->setData('language', $this->data_language);
-        $this->setData('modules', $this->module->getList());
-        $this->setData('list', $this->translator->getImportList($langcode));
-        $this->setData('time', $this->config->get('module_translator_saved', 0));
-        $this->setData('download_url', $this->translator->getImportDownloadUrl());
-
-        $this->submitImportTranslator();
-        $this->outputListImportTranslator();
-    }
-
-    /**
-     * Handles submitted import
-     */
-    protected function submitImportTranslator()
-    {
-        if ($this->isPosted('update')) {
-            if ($this->translator->clearImport()) {
-                $this->redirect('', $this->text('File has been updated'), 'success');
-            }
-            $this->redirect('', $this->text('File has not been updated'), 'warning');
-        }
-    }
-
-    /**
-     * Bulk actions for selected translations
-     */
-    protected function actionImportTranslator()
-    {
-        list($selected, $action) = $this->getPostedAction();
-
-        $submitted = array();
-        foreach ($selected as $id) {
-            if ($action === 'import') {
-                list($module_id, $file) = explode('-', $id, 2);
-                if (isset($submitted[$module_id])) {
-                    $this->setMessage($this->text('Please select only one file per module'), 'warning');
-                    return null;
-                }
-
-                $submitted[$module_id] = $file;
-            }
-        }
-
-        $imported = 0;
-        foreach ($submitted as $module_id => $file) {
-            $imported += (int) $this->translator->importContent($module_id, $file, $this->data_language['code']);
-        }
-
-        if ($imported > 0) {
-            $this->setMessage($this->text('Imported @num translation(s). Now you can <a href="@url">refresh language</a>', array('@num' => $imported, '@url' => $this->url('admin/settings/language'))), 'success');
-        }
-    }
-
-    /**
-     * Sets titles on the translation list page
-     */
-    protected function setTitleListImportTranslator()
-    {
-        $vars = array('%name' => $this->data_language['name']);
-        $this->setTitle($this->text('Import translations for %name', $vars));
-    }
-
-    /**
-     * Sets breadcrumbs on the translation list page
-     */
-    protected function setBreadcrumbListImportTranslator()
-    {
-        $breadcrumbs = array();
-
-        $breadcrumbs[] = array(
-            'url' => $this->url('admin'),
-            'text' => $this->text('Dashboard')
-        );
-
-        $breadcrumbs[] = array(
-            'url' => $this->url('admin/tool/translator'),
-            'text' => $this->text('Languages')
-        );
-
-        $this->setBreadcrumbs($breadcrumbs);
-    }
-
-    /**
-     * Render and output the translation list page
-     */
-    protected function outputListImportTranslator()
-    {
-        $this->output('translator|import');
-    }
-
-    /**
+     * Page callback
      * Displays the translation view page
      * @param string $langcode
      * @param string $id
@@ -645,17 +524,17 @@ class Translator extends BackendController
     {
         $this->setLanguageTranslator($langcode);
         $this->setContentTranslator($id);
-
         $this->setTitleViewTranslator();
         $this->setBreadcrumbViewTranslator();
 
         $this->setData('strings', $this->data_content);
         $this->setData('language', $this->data_language);
+
         $this->outputViewTranslator();
     }
 
     /**
-     * Read content from ZIP file
+     * Read content from a translation file
      * @param string $hash
      */
     protected function setContentTranslator($hash)
@@ -666,21 +545,14 @@ class Translator extends BackendController
             $this->outputHttpStatus(403);
         }
 
-        list($module_id, $file) = $parsed;
+        $this->data_content = array();
 
-        if (gplcart_path_is_absolute($file)) {
-            $this->data_content = $this->translation->parseCsv($file);
-        } else {
-            $list = $this->translator->getImportList();
-            if (!isset($list[$module_id][$this->data_language['code']][$file]['content'])) {
-                $this->outputHttpStatus(403);
-            }
-
-            $this->data_content = $list[$module_id][$this->data_language['code']][$file]['content'];
+        if (gplcart_path_is_absolute($parsed[1])) {
+            $this->data_content = $this->translation->parseCsv($parsed[1]);
         }
 
         // Untranslated strings go first
-        usort($this->data_content, function($a) {
+        usort($this->data_content, function ($a) {
             return isset($a[1]) && $a[1] !== '' ? 1 : -1;
         });
     }
@@ -690,8 +562,7 @@ class Translator extends BackendController
      */
     protected function setTitleViewTranslator()
     {
-        $vars = array('%name' => $this->data_language['name']);
-        $this->setTitle($this->text('Translation for %name', $vars));
+        $this->setTitle($this->text('Translation for %name', array('%name' => $this->data_language['name'])));
     }
 
     /**
@@ -699,24 +570,12 @@ class Translator extends BackendController
      */
     protected function setBreadcrumbViewTranslator()
     {
-        $breadcrumbs = array();
-
-        $breadcrumbs[] = array(
+        $breadcrumb = array(
             'url' => $this->url('admin'),
             'text' => $this->text('Dashboard')
         );
 
-        $breadcrumbs[] = array(
-            'url' => $this->url('admin/tool/translator'),
-            'text' => $this->text('Languages')
-        );
-
-        $breadcrumbs[] = array(
-            'url' => $this->url("admin/tool/translator/{$this->data_language['code']}/import"),
-            'text' => $this->text('Import translations for %name', array('%name' => $this->data_language['name']))
-        );
-
-        $this->setBreadcrumbs($breadcrumbs);
+        $this->setBreadcrumb($breadcrumb);
     }
 
     /**

@@ -9,20 +9,16 @@
 
 namespace gplcart\modules\translator\models;
 
-use Exception;
 use DOMDocument;
-use gplcart\core\Cache,
-    gplcart\core\Config,
-    gplcart\core\Hook,
-    gplcart\core\Module;
-use gplcart\core\helpers\Zip as ZipHelper;
-use gplcart\core\models\Language as LanguageModel,
-    gplcart\core\models\Translation as TranslationModel,
-    gplcart\core\models\FileTransfer as FileTransferModel;
+use DOMXPath;
+use Exception;
+use gplcart\core\Hook;
+use gplcart\core\models\Translation as TranslationModel;
+use gplcart\core\Module;
+use RuntimeException;
 
 /**
  * Manages basic behaviors and data related to Translator module
- * @todo Validate HTML before import
  */
 class Translator
 {
@@ -34,34 +30,10 @@ class Translator
     protected $hook;
 
     /**
-     * Config class instance
-     * @var \gplcart\core\Config $config
-     */
-    protected $config;
-
-    /**
      * Module class instance
      * @var \gplcart\core\Module $module
      */
     protected $module;
-
-    /**
-     * Cache class instance
-     * @var \gplcart\core\Cache $cache
-     */
-    protected $cache;
-
-    /**
-     * File transfer model class instance
-     * @var \gplcart\core\models\FileTransfer $file_transfer
-     */
-    protected $file_transfer;
-
-    /**
-     * Zip helper class instance
-     * @var \gplcart\core\helpers\Zip $zip
-     */
-    protected $zip;
 
     /**
      * Translation UI model class instance
@@ -70,35 +42,15 @@ class Translator
     protected $translation;
 
     /**
-     * Language model class instance
-     * @var \gplcart\core\models\Language $language
-     */
-    protected $language;
-
-    /**
-     * Translator constructor.
      * @param Hook $hook
-     * @param Config $config
-     * @param Cache $cache
      * @param Module $module
-     * @param ZipHelper $zip
-     * @param FileTransferModel $file_transfer
-     * @param LanguageModel $language
      * @param TranslationModel $translation
      */
-    public function __construct(Hook $hook, Config $config, Cache $cache, Module $module,
-            ZipHelper $zip, FileTransferModel $file_transfer, LanguageModel $language,
-            TranslationModel $translation)
+    public function __construct(Hook $hook, Module $module, TranslationModel $translation)
     {
         $this->hook = $hook;
         $this->module = $module;
-        $this->config = $config;
-
-        $this->zip = $zip;
-        $this->cache = $cache;
-        $this->language = $language;
         $this->translation = $translation;
-        $this->file_transfer = $file_transfer;
     }
 
     /**
@@ -144,9 +96,11 @@ class Translator
             return $result;
         }
 
-        $result = false;
-        if ($this->prepareDirectory($destination)) {
+        try {
+            $this->prepareDirectory($destination);
             $result = copy($source, $destination);
+        } catch (Exception $ex) {
+            $result = false;
         }
 
         $this->hook->attach('module.translator.copy.after', $source, $destination, $result, $this);
@@ -196,10 +150,9 @@ class Translator
      */
     public function isTranslationFile($file, $langcode)
     {
-        return is_file($file)//
-                && pathinfo($file, PATHINFO_EXTENSION) === 'csv'//
-                && (strpos($file, $this->translation->getDirectory($langcode)) === 0//
-                || $this->getModuleIdFromPath($file));
+        return is_file($file)
+            && pathinfo($file, PATHINFO_EXTENSION) === 'csv'
+            && (strpos($file, $this->translation->getDirectory($langcode)) === 0 || $this->getModuleIdFromPath($file));
     }
 
     /**
@@ -220,229 +173,21 @@ class Translator
     }
 
     /**
-     * Returns an array of scanned and prepared translations
-     * @param string|null $langcode
-     * @return array
-     */
-    public function getImportList($langcode = null)
-    {
-        $key = "module.translator.import.$langcode";
-        $list = $this->cache->get($key);
-
-        if (empty($list)) {
-            $file = $this->getImportFile();
-            $scanned = $this->scanImportFile($file);
-            $list = $this->buildImportList($scanned, $file, $langcode);
-            $this->config->set('module_translator_saved', GC_TIME);
-            $this->cache->set($key, $list);
-        }
-
-        $this->hook->attach('module.translator.import.list', $langcode, $list, $this);
-        return $list;
-    }
-
-    /**
-     * Delete both cache and ZIP file
-     * @return boolean
-     */
-    public function clearImport()
-    {
-        $this->cache->clear('module.translator.import', array('pattern' => '*'));
-        $file = $this->getImportFilePath();
-        return is_file($file) && unlink($file);
-    }
-
-    /**
-     * Copy translation from the source ZIP file
-     * @param string $module_id
-     * @param string $file
-     * @param string $langcode
-     * @return boolean
-     */
-    public function importContent($module_id, $file, $langcode)
-    {
-        $result = null;
-        $this->hook->attach('module.translator.copy.before', $module_id, $file, $langcode, $result);
-
-        if (isset($result)) {
-            return $result;
-        }
-
-        $content = $this->readZip($module_id, $file, $langcode);
-
-        if (empty($content)) {
-            return false;
-        }
-
-        if ($module_id === 'core') {
-            $module_id = '';
-        }
-
-        $destination = $this->translation->getFile($langcode, $module_id);
-
-        $result = false;
-        if ($this->prepareDirectory($destination)) {
-            $result = file_put_contents($destination, $content) !== false;
-        }
-
-        $this->hook->attach('module.translator.copy.after', $module_id, $file, $langcode, $destination, $result);
-        return $result;
-    }
-
-    /**
      * Ensure that directory exists and contains no the same file
      * @param string $file
-     * @return boolean
+     * @throws RuntimeException
      */
     protected function prepareDirectory($file)
     {
         $directory = dirname($file);
+
         if (!file_exists($directory) && !mkdir($directory, 0775, true)) {
-            return false;
+            throw new RuntimeException('Failed to create directory');
         }
 
-        if (file_exists($file)) {
-            unlink($file);
+        if (file_exists($file) && !unlink($file)) {
+            throw new RuntimeException('Failed to unlink the existing file');
         }
-
-        return true;
-    }
-
-    /**
-     * Returns an array of scanned translations
-     * @param string|bool $file
-     * @return array
-     */
-    public function scanImportFile($file)
-    {
-        if (empty($file)) {
-            return array();
-        }
-
-        try {
-            $items = $this->zip->set($file)->getList();
-        } catch (Exception $ex) {
-            trigger_error($ex->getMessage());
-            return array();
-        }
-
-        // Convert to nested array
-        $nested = array();
-        foreach ($items as $item) {
-            $parents = explode('/', trim($item, '/'));
-            gplcart_array_set($nested, $parents, $item);
-        }
-
-        return $nested;
-    }
-
-    /**
-     * Build translation data
-     * @param array $items
-     * @param string $file
-     * @param null|string $langcode
-     * @return array
-     */
-    public function buildImportList(array $items, $file, $langcode)
-    {
-        $list = array();
-        $version = gplcart_version(true);
-
-        if (!empty($items["$version.x"])) {
-            $modules = $this->module->getList();
-            foreach ($items["$version.x"] as $module_id => $translations) {
-                if ($module_id === 'core' || isset($modules[$module_id])) {
-                    $list[$module_id] = $this->prepareImportTranslations($translations, $file, $langcode);
-                }
-            }
-        }
-
-        ksort($list);
-
-        // Put core translations on the top
-        if (isset($list['core'])) {
-            $core = $list['core'];
-            unset($list['core']);
-            $list = array_merge(array('core' => $core), $list);
-        }
-
-        return $list;
-    }
-
-    /**
-     * Prepare an array of translations
-     * @param array $data
-     * @param string $file
-     * @param string $langcode
-     * @return array
-     */
-    protected function prepareImportTranslations(array $data, $file, $langcode)
-    {
-        $languages = $this->language->getList();
-
-        $prepared = array();
-        foreach ($data as $filename => $path) {
-
-            $pathinfo = pathinfo($filename);
-            if (empty($pathinfo['extension']) || $pathinfo['extension'] !== 'csv') {
-                continue;
-            }
-
-            list($lang, $version) = array_pad(explode('.', $pathinfo['filename'], 2), 2, '');
-
-            if (!empty($langcode) && $langcode !== $lang) {
-                continue;
-            }
-
-            if (empty($languages[$lang])) {
-                continue;
-            }
-
-            $content = $this->translation->parseCsv("zip://$file#$path");
-            $total = count($content);
-            $translated = $this->countTranslated($content);
-
-            $prepared[$lang][$filename] = array(
-                'total' => $total,
-                'file' => $filename,
-                'version' => $version,
-                'content' => $content,
-                'translated' => $translated,
-                'progress' => round(($translated / $total) * 100)
-            );
-
-            uasort($prepared[$lang], function ($a, $b) {
-                return version_compare($a['version'], $b['version']);
-            });
-        }
-
-        return $prepared;
-    }
-
-    /**
-     * Read CSV from ZIP file
-     * @param string $module_id
-     * @param string $file
-     * @param string $langcode
-     * @return string
-     */
-    public function readZip($module_id, $file, $langcode)
-    {
-        $list = $this->getImportList();
-
-        $content = '';
-        if (!empty($list[$module_id][$langcode][$file]['content'])) {
-            // Use php://temp stream?
-            $data = stream_get_meta_data(tmpfile());
-            foreach ($list[$module_id][$langcode][$file]['content'] as $line) {
-                gplcart_file_csv($data['uri'], $line);
-            }
-
-            $content = file_get_contents($data['uri']);
-            unlink($data['uri']);
-        }
-
-        return $content;
     }
 
     /**
@@ -453,9 +198,10 @@ class Translator
     protected function countTranslated(array $lines)
     {
         $count = 0;
+
         foreach ($lines as $line) {
             if (isset($line[1]) && $line[1] !== '') {
-                $count ++;
+                $count++;
             }
         }
 
@@ -463,65 +209,35 @@ class Translator
     }
 
     /**
-     * Downloads a remote ZIP file
-     * @param string $destination
-     * @return boolean
+     * Fix html strings in the translation file
+     * @param string $file
+     * @param array $fixed_strings
+     * @return array
      */
-    public function downloadImportFile($destination)
+    public function getFixedStrings($file, array &$fixed_strings = array())
     {
-        try {
-            $result = $this->file_transfer->download($this->getImportDownloadUrl(), 'zip', $destination);
-            if ($result !== true) {
-                trigger_error($result);
-                return false;
+        $lines = $this->translation->parseCsv($file);
+
+        foreach ($lines as $num => $line) {
+            unset($line[0]);
+            foreach ($line as $col => $string) {
+                $fixed = $this->fixHtmlString($string);
+                if ($fixed !== false) {
+                    $lines[$num][$col] = $fixed;
+                    $fixed_strings[] = $string;
+                }
             }
-        } catch (Exception $ex) {
-            trigger_error($ex->getMessage());
-            return false;
         }
 
-        return true;
+        return $lines;
     }
 
     /**
-     * Returns URL of source ZIP file
-     * @return string
-     */
-    public function getImportDownloadUrl()
-    {
-        return 'https://crowdin.com/download/project/gplcart.zip';
-    }
-
-    /**
-     * Returns the path of a downloaded ZIP file
-     * @return bool|string
-     */
-    public function getImportFile()
-    {
-        $file = $this->getImportFilePath();
-
-        if (is_file($file)) {
-            return $file;
-        }
-
-        return $this->downloadImportFile($file) ? $file : false;
-    }
-
-    /**
-     * Returns the absolute path of downloaded ZIP file
-     * @return string|bool
-     */
-    public function getImportFilePath()
-    {
-        return gplcart_file_private_temp('translator-import.zip');
-    }
-
-    /**
-     * Detect invalid HTML
+     * Tries to fix invalid HTML
      * @param string $string
-     * @return boolean
+     * @return boolean|string
      */
-    public function isInvalidHtml($string)
+    public function fixHtmlString($string)
     {
         if (strpos($string, '>') === false && strpos($string, '<') === false) {
             return false;
@@ -529,17 +245,17 @@ class Translator
 
         libxml_use_internal_errors(true);
 
-        $dom = new DOMDocument;
-        $dom->loadHTML($string);
+        $dom = new DOMDocument();
+        $xml = mb_convert_encoding("<root>$string</root>", 'HTML-ENTITIES', 'UTF-8');
+        $dom->loadHTML($xml, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $xpath = new DOMXPath($dom);
 
-        // Strip wrapping html and body tags
-        $mock = new DOMDocument;
-        $body = $dom->getElementsByTagName('body')->item(0);
-        foreach ($body->childNodes as $child) {
-            $mock->appendChild($mock->importNode($child, true));
+        foreach ($xpath->query('//*[not(node())]') as $node) {
+            $node->parentNode->removeChild($node);
         }
 
-        return trim($mock->saveHTML()) !== $string;
+        $fixed = substr($dom->saveHTML(), 6, -8);
+        return html_entity_decode($fixed, ENT_QUOTES, 'UTF-8');
     }
 
 }
