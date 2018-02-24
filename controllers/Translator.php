@@ -9,14 +9,14 @@
 
 namespace gplcart\modules\translator\controllers;
 
-use gplcart\core\controllers\backend\Controller as BackendController;
-use gplcart\core\models\FileTransfer as FileTransferModel;
-use gplcart\modules\translator\models\Translator as TranslatorModuleModel;
+use gplcart\core\controllers\backend\Controller;
+use gplcart\core\models\FileTransfer;
+use gplcart\modules\translator\models\Translator as TranslatorModel;
 
 /**
  * Handles incoming requests and outputs data related to Translator module
  */
-class Translator extends BackendController
+class Translator extends Controller
 {
     /**
      * Translator model class instance
@@ -43,10 +43,11 @@ class Translator extends BackendController
     protected $data_language;
 
     /**
-     * @param FileTransferModel $file_transfer
-     * @param TranslatorModuleModel $translator
+     * Translator constructor.
+     * @param FileTransfer $file_transfer
+     * @param TranslatorModel $translator
      */
-    public function __construct(FileTransferModel $file_transfer, TranslatorModuleModel $translator)
+    public function __construct(FileTransfer $file_transfer, TranslatorModel $translator)
     {
         parent::__construct();
 
